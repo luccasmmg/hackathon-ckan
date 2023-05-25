@@ -1,28 +1,15 @@
-import { existsSync, promises as fs } from "fs";
-import path from "path";
-import parse from "../../lib/markdown";
-
-import DataRichDocument from "../../components/DataRichDocument";
-import clientPromise from "../../lib/mddb";
+import {
+  CKAN,
+  DatasetSearchForm,
+  ListOfDatasets,
+  PackageSearchOptions,
+  Organization,
+  Group,
+} from "@portaljs/ckan";
 import getConfig from "next/config";
-import { CKAN } from "@portaljs/ckan";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { Dialog } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
-
-export const getStaticPaths = async () => {
-  const contentDir = path.join(process.cwd(), "/content/");
-  const contentFolders = await fs.readdir(contentDir, "utf8");
-  const paths = contentFolders.map((folder: string) => ({
-    params: { path: [folder.split(".")[0]] },
-  }));
-  return {
-    paths,
-    fallback: false,
-  };
-};
-
-const backend_url = getConfig().publicRuntimeConfig.DMS;
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -30,47 +17,39 @@ const navigation = [
   { name: "Report", href: "/stories/report_1" },
 ];
 
+const backend_url = getConfig().publicRuntimeConfig.DMS;
 
-export const getStaticProps = async (context) => {
-  const mddb = await clientPromise;
-  const storyFile = await mddb.getFileByUrl(context.params.path);
-  const md = await fs.readFile(
-    `${process.cwd()}/${storyFile.file_path}`,
-    "utf8"
-  );
-
+export async function getServerSideProps() {
   const ckan = new CKAN(backend_url);
-  const datasets = storyFile.metadata.datasets
-    ? await Promise.all(
-        storyFile.metadata.datasets.map(
-          async (datasetName: string) =>
-            await ckan.getDatasetDetails(datasetName)
-        )
-      )
-    : [];
-  const orgs = storyFile.metadata.orgs
-    ? await Promise.all(
-        storyFile.metadata.orgs.map(
-          async (orgName: string) => await ckan.getOrgDetails(orgName)
-        )
-      )
-    : [];
-
-  let { mdxSource, frontMatter } = await parse(md, ".mdx", { datasets, orgs });
-
+  const groups = await ckan.getGroupsWithDetails();
+  const orgs = await ckan.getOrgsWithDetails();
   return {
     props: {
-      mdxSource,
-      frontMatter: JSON.stringify(frontMatter),
+      groups,
+      orgs,
     },
   };
-};
+}
 
-export default function DatasetPage({ mdxSource, frontMatter }) {
-  frontMatter = JSON.parse(frontMatter);
+export default function Home({
+  orgs,
+  groups,
+}: {
+  orgs: Organization[];
+  groups: Group[];
+}) {
+  const ckan = new CKAN(backend_url);
+  const [options, setOptions] = useState<PackageSearchOptions>({
+    offset: 0,
+    limit: 5,
+    tags: [],
+    groups: [],
+    orgs: [],
+  });
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   return (
-    <>
+    <div className="bg-white">
       <header className="absolute inset-x-0 top-0 z-50">
         <nav className="flex items-center p-6 lg:px-8" aria-label="Global">
           <div className="flex">
@@ -160,10 +139,35 @@ export default function DatasetPage({ mdxSource, frontMatter }) {
             }}
           />
         </div>
-        <main className="prose my-16 max-w-7xl mx-auto bg-white py-12 px-8 rounded-lg shadow-lg">
-          <DataRichDocument source={mdxSource} />
-        </main>
+
+        <div className="rounded-lg my-24 p-8">
+        <DatasetSearchForm
+          options={options}
+          setOptions={setOptions}
+          groups={groups}
+          orgs={orgs}
+        />
+        <div className="bg-white p-8 my-4 rounded-lg">
+          <ListOfDatasets
+            options={options}
+            setOptions={setOptions}
+            ckan={ckan}
+          />{" "}
+        </div>
+        </div>
+        <div
+          className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]"
+          aria-hidden="true"
+        >
+          <div
+            className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
+            style={{
+              clipPath:
+                "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
+            }}
+          />
+        </div>
       </div>
-    </>
+    </div>
   );
 }
