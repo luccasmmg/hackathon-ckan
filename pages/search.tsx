@@ -14,7 +14,7 @@ import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 const navigation = [
   { name: "Home", href: "/" },
   { name: "Search", href: "/search" },
-  { name: "Report", href: "/stories/report_1" },
+  { name: "Data Story", href: "/stories/report_1" },
 ];
 
 const backend_url = getConfig().publicRuntimeConfig.DMS;

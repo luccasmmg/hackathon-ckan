@@ -6,7 +6,7 @@ import Link from "next/link";
 const navigation = [
   { name: "Home", href: "/" },
   { name: "Search", href: "/search" },
-  { name: "Report", href: "/stories/report_1" },
+  { name: "Data Story", href: "/stories/report_1" },
 ];
 
 export default function Home() {

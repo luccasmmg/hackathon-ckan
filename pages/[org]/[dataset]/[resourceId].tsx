@@ -17,7 +17,7 @@ const backend_url = getConfig().publicRuntimeConfig.DMS;
 const navigation = [
   { name: "Home", href: "/" },
   { name: "Search", href: "/search" },
-  { name: "Report", href: "/stories/report" },
+  { name: "Data Story", href: "/stories/report_1" },
 ];
 
 export const getServerSideProps = async (context: any) => {
